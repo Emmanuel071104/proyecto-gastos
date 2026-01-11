@@ -1,113 +1,90 @@
-/* --- Paleta de Colores y Variables --- */
+/* --- Paleta de Colores Moderna --- */
 :root {
-    --primary-bg: #fbfbfd;      /* Fondo gris muy claro estilo Apple */
-    --card-bg: #ffffff;         /* Blanco puro para tarjetas */
-    --text-main: #1d1d1f;       /* Negro suave para legibilidad */
-    --text-muted: #86868b;     /* Gris para descripciones */
-    --accent-blue: #0066cc;    /* Azul brillante profesional */
-    --accent-success: #28a745;  /* Verde para botones de guardado */
+    --primary-bg: #fbfbfd;
+    --card-bg: #ffffff;
+    --text-main: #1d1d1f;
+    --text-muted: #86868b;
+    --apple-blue: #0071e3;    /* Azul oficial de Apple */
+    --apple-gray: #f5f5f7;
     --shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
-    --radius: 16px;
 }
 
-/* --- Estilos Generales --- */
 body { 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
     background-color: var(--primary-bg) !important;
     color: var(--text-main) !important;
-    line-height: 1.5;
 }
 
-/* --- Navbar Moderna --- */
+/* --- NAVBAR: EL FIX DEL BOTÓN INVISIBLE --- */
 .navbar { 
     background-color: rgba(255, 255, 255, 0.8) !important;
-    backdrop-filter: blur(15px); /* Efecto cristal esmerilado */
+    backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(0,0,0,0.05);
-    margin-bottom: 2rem;
-    padding: 15px 0;
+    padding: 12px 0;
 }
 
 .navbar-brand {
-    font-weight: 700;
-    letter-spacing: -0.5px;
+    font-weight: 600;
     color: var(--text-main) !important;
 }
 
-/* --- Hero Section (Landing Page) --- */
+/* Forzamos que el botón de Login (btn-outline-light) sea visible */
+.navbar .btn-outline-light {
+    color: var(--text-main) !important;
+    border-color: rgba(0,0,0,0.15) !important;
+    background: transparent;
+    font-weight: 500;
+}
+
+.navbar .btn-outline-light:hover {
+    background-color: var(--apple-gray) !important;
+    border-color: rgba(0,0,0,0.3) !important;
+    color: #000 !important;
+}
+
+/* Botón de Registro (btn-primary) */
+.navbar .btn-primary {
+    background-color: var(--apple-blue) !important;
+    border: none !important;
+    font-weight: 500;
+}
+
+/* --- HERO SECTION --- */
 .hero-section { 
-    background: transparent !important; /* Quitamos el azul sólido para ver el texto */
+    background: transparent !important;
     color: var(--text-main) !important; 
-    padding: 100px 0; 
-    text-align: center; 
+    padding: 120px 0; 
 }
 
 .hero-section h1 {
-    font-size: 3.5rem;
-    font-weight: 800;
+    font-size: 3.8rem;
+    font-weight: 700;
     letter-spacing: -1.5px;
-    margin-bottom: 20px;
 }
 
 .hero-section p {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     color: var(--text-muted);
-    max-width: 600px;
-    margin: 0 auto 40px;
 }
 
-/* --- Tarjetas y Contenedores --- */
+/* --- CARDS Y TABLAS --- */
 .card, .table-container { 
     background: var(--card-bg) !important;
-    border: none !important; 
-    border-radius: var(--radius) !important; 
+    border-radius: 18px !important; 
     box-shadow: var(--shadow) !important; 
-    padding: 30px;
-    transition: transform 0.2s ease;
+    padding: 32px;
 }
 
-/* --- Botones Estilizados --- */
-.btn-primary { 
-    background-color: var(--accent-blue) !important;
-    border: none !important;
-    border-radius: 25px !important; 
-    padding: 10px 25px !important;
-    font-weight: 600;
-}
-
-.btn-success {
-    background-color: var(--accent-success) !important;
-    border-radius: 25px !important;
-    border: none !important;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-/* --- Tablas Limpias --- */
-.table {
-    margin-top: 10px;
+.btn {
+    border-radius: 22px !important; /* Bordes redondeados modernos */
+    padding: 8px 24px !important;
+    transition: all 0.2s ease;
 }
 
 .table thead th {
-    background-color: transparent !important;
-    border-bottom: 1px solid #eee !important;
     color: var(--text-muted);
-    font-size: 0.85rem;
-    text-transform: uppercase;
     font-weight: 600;
-}
-
-/* --- Inputs Modernos --- */
-.form-control {
-    border-radius: 10px !important;
-    border: 1px solid #d2d2d7 !important;
-    padding: 12px !important;
-    background-color: #f5f5f7 !important;
-}
-
-.form-control:focus {
-    box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.1) !important;
-    border-color: var(--accent-blue) !important;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    border-bottom: 1px solid #eee;
 }
