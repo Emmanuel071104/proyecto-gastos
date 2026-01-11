@@ -5,8 +5,11 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+
+# --- CONFIGURACIÓN DE SEGURIDAD Y BASE DE DATOS ---
 app.config['SECRET_KEY'] = 'simplefinance_2026_secreto'
 
+# Configuración automática para Render o entorno local
 uri = os.getenv("DATABASE_URL", "sqlite:///gastos.db")
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
@@ -17,6 +20,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+# --- MODELOS DE LA BASE DE DATOS (ORM) ---
 
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuarios'
@@ -46,22 +51,30 @@ class Gasto(db.Model):
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
 
+# --- RUTAS DE LA APLICACIÓN ---
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:
         if current_user.rol == 'admin':
             return redirect(url_for('dashboard'))
+        
+        # Lógica de filtros
         cat_id = request.args.get('categoria_id')
         inicio = request.args.get('inicio')
         fin = request.args.get('fin')
+
         query = Gasto.query.filter_by(usuario_id=current_user.id)
+
         if cat_id:
             query = query.filter_by(categoria_id=int(cat_id))
         if inicio and fin:
             query = query.filter(Gasto.fecha.between(inicio, fin))
+
         mis_gastos = query.order_by(Gasto.id.desc()).all()
         todas_categorias = Categoria.query.all()
         return render_template('index.html', gastos=mis_gastos, categorias=todas_categorias)
+    
     return render_template('index.html')
 
 @app.route('/dashboard')
@@ -69,12 +82,24 @@ def index():
 def dashboard():
     if current_user.rol != 'admin':
         return redirect(url_for('index'))
-    gastos = Gasto.query.all()
+    
+    # Mejora: Cálculo directo en DB para mayor eficiencia
+    total_db = db.session.query(db.func.sum(Gasto.monto)).scalar() or 0
     usuarios = Usuario.query.all()
-    total = sum(g.monto for g in gastos)
-    promedio = total / len(usuarios) if usuarios else 0
+    num_usuarios = len(usuarios)
+    promedio = total_db / num_usuarios if num_usuarios > 0 else 0
+    
+    # Todos los gastos para el monitor de auditoría
+    gastos_globales = Gasto.query.all()
     reciente = Gasto.query.order_by(Gasto.id.desc()).limit(5).all()
-    return render_template('dashboard.html', gastos=gastos, total=total, usuarios=usuarios, num_usuarios=len(usuarios), promedio=promedio, reciente=reciente)
+    
+    return render_template('dashboard.html', 
+                           gastos=gastos_globales, 
+                           total=total_db, 
+                           usuarios=usuarios, 
+                           num_usuarios=num_usuarios, 
+                           promedio=promedio, 
+                           reciente=reciente)
 
 @app.route('/eliminar_usuario/<int:id>')
 @login_required
@@ -103,7 +128,7 @@ def eliminar(id):
     if gasto.usuario_id == current_user.id:
         db.session.delete(gasto)
         db.session.commit()
-        flash('Registro eliminado.', 'success')
+        flash('Registro eliminado correctamente.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/editar/<int:id>', methods=['POST'])
@@ -111,11 +136,15 @@ def eliminar(id):
 def editar(id):
     gasto = Gasto.query.get_or_404(id)
     if gasto.usuario_id == current_user.id:
-        gasto.monto = float(request.form.get('monto'))
-        gasto.descripcion = request.form.get('descripcion')
-        gasto.categoria_id = int(request.form.get('categoria_id'))
-        db.session.commit()
-        flash('Gasto actualizado.', 'success')
+        # Validación de seguridad
+        try:
+            gasto.monto = float(request.form.get('monto'))
+            gasto.descripcion = request.form.get('descripcion')
+            gasto.categoria_id = int(request.form.get('categoria_id'))
+            db.session.commit()
+            flash('Gasto actualizado con éxito.', 'success')
+        except:
+            flash('Error al actualizar los datos.', 'error')
     return redirect(url_for('index'))
 
 @app.route('/agregar', methods=['POST'])
@@ -152,6 +181,7 @@ def register():
             nuevo = Usuario(username=username, password=hashed_pw)
             db.session.add(nuevo)
             db.session.commit()
+            flash('Registro exitoso. Inicia sesión para continuar.', 'success')
             return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -164,11 +194,17 @@ def logout():
 def setup():
     db.create_all()
     if not Categoria.query.first():
-        db.session.add_all([Categoria(nombre='Comida'), Categoria(nombre='Transporte'), Categoria(nombre='Ocio'), Categoria(nombre='Salud')])
+        db.session.add_all([
+            Categoria(nombre='Comida'), 
+            Categoria(nombre='Transporte'), 
+            Categoria(nombre='Ocio'), 
+            Categoria(nombre='Salud')
+        ])
     if not Usuario.query.filter_by(username='admin').first():
-        db.session.add(Usuario(username='admin', password=generate_password_hash('admin123'), rol='admin'))
+        admin_pw = generate_password_hash('admin123')
+        db.session.add(Usuario(username='admin', password=admin_pw, rol='admin'))
     db.session.commit()
-    return "Base de datos inicializada."
+    return "Base de datos inicializada correctamente."
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

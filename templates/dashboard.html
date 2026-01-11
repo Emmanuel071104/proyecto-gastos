@@ -3,7 +3,7 @@
 <div class="container mt-4">
     <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card kpi-card-blue p-3 shadow-sm">
+            <div class="card kpi-card-blue shadow-sm">
                 <div class="d-flex align-items-center">
                     <div class="rounded-circle bg-white p-3 me-3 text-primary"><i class="fas fa-dollar-sign"></i></div>
                     <div>
@@ -14,20 +14,20 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card kpi-card-white p-3">
+            <div class="card kpi-card-white shadow-sm p-3">
                 <h6 class="text-muted">Usuarios Registrados</h6>
                 <h3 class="fw-bold">{{ num_usuarios }}</h3>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card kpi-card-white p-3">
+            <div class="card kpi-card-white shadow-sm p-3">
                 <h6 class="text-muted">Promedio Usuario</h6>
                 <h3 class="fw-bold">${{ "{:,.2f}".format(promedio) }}</h3>
             </div>
         </div>
     </div>
 
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-md-5">
             <div class="table-container mb-4">
                 <h5 class="fw-bold mb-3">Gestión de Usuarios</h5>
@@ -37,12 +37,10 @@
                         {% for u in usuarios %}
                         <tr>
                             <td class="fw-bold">{{ u.username }}</td>
-                            <td>{{ u.rol|upper }}</td>
+                            <td><span class="badge {{ 'bg-danger' if u.rol == 'admin' else 'bg-secondary' }}">{{ u.rol|upper }}</span></td>
                             <td class="text-center">
                                 {% if u.id != current_user.id %}
-                                <a href="/eliminar_usuario/{{ u.id }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Eliminar?')">
-                                    <i class="fas fa-user-times"></i>
-                                </a>
+                                <a href="/eliminar_usuario/{{ u.id }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Eliminar?')"><i class="fas fa-user-times"></i></a>
                                 {% endif %}
                             </td>
                         </tr>
@@ -64,6 +62,25 @@
                 </ul>
             </div>
         </div>
+    </div>
+
+    <div class="table-container mt-4">
+        <h4 class="fw-bold mb-4">Monitor de Auditoría (Todos los Gastos)</h4>
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr><th>Usuario</th><th>Descripción</th><th>Categoría</th><th class="text-end">Monto</th></tr>
+            </thead>
+            <tbody>
+                {% for g in gastos %}
+                <tr>
+                    <td><span class="badge bg-info text-dark">{{ g.dueno.username }}</span></td>
+                    <td>{{ g.descripcion }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ g.categoria_rel.nombre }}</span></td>
+                    <td class="fw-bold text-danger text-end">${{ g.monto }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}
