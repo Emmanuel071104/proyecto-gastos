@@ -12,13 +12,13 @@
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand fw-bold" href="/">SimpleFinance</a>
-            <div class=\"ms-auto\">
+            <div class="ms-auto">
                 {% if current_user.is_authenticated %}
                     <span class="navbar-welcome">Bienvenido, <strong>{{ current_user.username }}</strong></span>
-                    <a href="/logout" class="btn btn-outline-danger btn-sm">Cerrar Sesión</a>
+                    <a href="/logout" class="btn btn-outline-danger btn-sm btn-modern">Cerrar Sesión</a>
                 {% else %}
-                    <a href="/login" class="btn btn-outline-primary btn-sm">Entrar</a>
-                    <a href="/register" class="btn btn-primary btn-sm ms-2">Registrarse</a>
+                    <a href="/login" class="btn btn-outline-primary btn-sm btn-modern">Entrar</a>
+                    <a href="/register" class="btn btn-primary btn-sm btn-modern ms-2">Registrarse</a>
                 {% endif %}
             </div>
         </div>

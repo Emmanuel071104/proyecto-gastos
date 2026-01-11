@@ -5,32 +5,70 @@
     <div class="hero-section text-center">
         <h1 class="hero-title">SimpleFinance</h1>
         <p class="hero-subtitle">Organiza tu dinero de forma sencilla.</p>
-        <a href="/register" class="btn btn-primary btn-lg">Empezar Ahora</a>
+        <a href="/register" class="btn btn-primary btn-modern btn-lg">Empezar Ahora</a>
     </div>
     {% else %}
+    
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card kpi-card-white h-100">
+                <h5 class="fw-bold mb-3">Control de Presupuesto</h5>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Límite Mensual:</span>
+                    <span class="fw-bold text-primary">${{ "{:,.2f}".format(limite) }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span>Saldo Disponible:</span>
+                    <span class="fw-bold {{ 'text-success' if saldo > 0 else 'text-danger' }}">${{ "{:,.2f}".format(saldo) }}</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    {% set porcentaje = (gastos|sum(attribute='monto') / limite * 100) if limite > 0 else 0 %}
+                    <div class="progress-bar {{ 'bg-danger' if porcentaje > 90 else 'bg-primary' }}" 
+                         style="width: {{ porcentaje if porcentaje <= 100 else 100 }}%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card kpi-card-white h-100">
+                <h5 class="fw-bold mb-3">Configurar Presupuesto</h5>
+                <form action="/definir_presupuesto" method="POST" class="d-flex gap-2">
+                    <input type="number" step="0.01" name="monto" class="form-control" placeholder="Monto total del mes" required>
+                    <button type="submit" class="btn btn-primary btn-modern">Establecer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-4">
             <div class="card mb-4">
                 <h4 class="fw-bold mb-3">Nuevo Gasto</h4>
                 <form action="/agregar" method="POST">
-                    <input type="number" step="0.01" name="monto" class="form-control mb-2" placeholder="Monto" required>
+                    <input type="number" step="0.01" name="monto" class="form-control mb-2" placeholder="Monto ($)" required>
                     <select name="categoria_id" class="form-select mb-2" required>
                         <option value="" disabled selected>Categoría</option>
                         {% for c in categorias %}
                         <option value="{{ c.id }}">{{ c.nombre }}</option>
                         {% endfor %}
                     </select>
+                    <select name="metodo_id" class="form-select mb-2" required>
+                        <option value="" disabled selected>Método de Pago</option>
+                        {% for m in metodos %}
+                        <option value="{{ m.id }}">{{ m.nombre }}</option>
+                        {% endfor %}
+                    </select>
                     <input type="text" name="descripcion" class="form-control mb-2" placeholder="Descripción" required>
-                    <button type="submit" class="btn btn-success w-100">Guardar</button>
+                    <button type="submit" class="btn btn-success btn-modern w-100">Guardar</button>
                 </form>
             </div>
             <div class="card">
-                <h5 class="fw-bold">Distribución</h5>
+                <h5 class="fw-bold mb-3">Distribución</h5>
                 <canvas id="expenseChart"></canvas>
             </div>
         </div>
+
         <div class="col-md-8">
-            <div class="card mb-4 p-3 shadow-sm border-0">
+            <div class="card mb-4 p-3 border-0 shadow-sm">
                 <form method="GET" class="row g-2">
                     <div class="col-md-4">
                         <select name="categoria_id" class="form-select">
@@ -42,22 +80,27 @@
                     </div>
                     <div class="col-md-3"><input type="date" name="inicio" class="form-control"></div>
                     <div class="col-md-3"><input type="date" name="fin" class="form-control"></div>
-                    <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Filtrar</button></div>
+                    <div class="col-md-2"><button type="submit" class="btn btn-primary btn-modern w-100">Filtrar</button></div>
                 </form>
             </div>
 
             <div class="table-container">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="fw-bold m-0">Mis Movimientos</h4>
-                    <h4 class="text-danger m-0">-${{ gastos|sum(attribute='monto')|round(2) }}</h4>
-                </div>
+                <h4 class="fw-bold mb-3">Mis Movimientos</h4>
                 <table class="table table-hover align-middle">
-                    <thead><tr><th>Descripción</th><th>Monto</th><th class="text-center">Acciones</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Pago</th>
+                            <th class="text-end">Monto</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         {% for g in gastos %}
                         <tr>
-                            <td>{{ g.descripcion }}</td>
-                            <td class="text-danger fw-bold">-${{ g.monto }}</td>
+                            <td><strong>{{ g.descripcion }}</strong><br><small>{{ g.categoria_rel.nombre }}</small></td>
+                            <td><span class="badge bg-light text-dark border">{{ g.metodo_rel.nombre }}</span></td>
+                            <td class="text-danger fw-bold text-end">-${{ "{:,.2f}".format(g.monto) }}</td>
                             <td class="text-center">
                                 <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ g.id }}"><i class="fas fa-edit"></i></button>
                                 <a href="/eliminar/{{ g.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar?')"><i class="fas fa-trash"></i></a>
@@ -66,19 +109,24 @@
                                     <div class="modal-dialog">
                                         <div class="modal-content text-start">
                                             <form action="/editar/{{ g.id }}" method="POST">
-                                                <div class="modal-header"><h5 class="modal-title">Editar Movimiento</h5></div>
+                                                <div class="modal-header"><h5 class="modal-title">Editar</h5></div>
                                                 <div class="modal-body">
                                                     <input type="number" step="0.01" name="monto" class="form-control mb-2" value="{{ g.monto }}" required>
                                                     <input type="text" name="descripcion" class="form-control mb-2" value="{{ g.descripcion }}" required>
-                                                    <select name="categoria_id" class="form-select">
+                                                    <select name="categoria_id" class="form-select mb-2">
                                                         {% for c in categorias %}
                                                         <option value="{{ c.id }}" {% if c.id == g.categoria_id %}selected{% endif %}>{{ c.nombre }}</option>
                                                         {% endfor %}
                                                     </select>
+                                                    <select name="metodo_id" class="form-select">
+                                                        {% for m in metodos %}
+                                                        <option value="{{ m.id }}" {% if m.id == g.metodo_id %}selected{% endif %}>{{ m.nombre }}</option>
+                                                        {% endfor %}
+                                                    </select>
                                                 </div>
                                                 <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                    <button type="submit" class="btn btn-primary">Guardar</button>
+                                                    <button type="button" class="btn btn-secondary btn-modern" data-bs-dismiss="modal">Cerrar</button>
+                                                    <button type="submit" class="btn btn-primary btn-modern">Guardar</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -98,7 +146,13 @@
     fetch('/chart-data').then(res => res.json()).then(data => {
         new Chart(document.getElementById('expenseChart'), {
             type: 'pie',
-            data: { labels: data.labels, datasets: [{ data: data.values, backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545'] }] }
+            data: { 
+                labels: data.labels, 
+                datasets: [{ 
+                    data: data.values, 
+                    backgroundColor: ['#0071e3', '#28a745', '#ffc107', '#dc3545', '#6c757d'] 
+                }] 
+            }
         });
     });
 </script>
