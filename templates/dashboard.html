@@ -10,14 +10,14 @@
 
     <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card bg-dark text-white border-0 shadow-sm p-3">
+            <div class="card bg-primary text-white border-0 shadow-sm p-3">
                 <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-primary p-3 me-3">
+                    <div class="rounded-circle bg-white p-3 me-3 text-primary">
                         <i class="fas fa-dollar-sign fa-lg"></i>
                     </div>
                     <div>
-                        <h6 class="mb-0 text-secondary">Gasto Total Global</h6>
-                        <h3 class="fw-bold mb-0">${{ "{:,.2f}".format(total) }}</h3>
+                        <h6 class="mb-0 opacity-75">Gasto Total Global</h6>
+                        <h3 class="fw-bold mb-0 text-white">${{ "{:,.2f}".format(total) }}</h3>
                     </div>
                 </div>
             </div>
@@ -58,20 +58,28 @@
                     <table class="table table-sm table-hover align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>ID</th>
                                 <th>Usuario</th>
                                 <th>Rol</th>
+                                <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for u in usuarios %}
                             <tr>
-                                <td>{{ u.id }}</td>
                                 <td class="fw-bold">{{ u.username }}</td>
                                 <td>
                                     <span class="badge {{ 'bg-danger' if u.rol == 'admin' else 'bg-secondary' }}">
                                         {{ u.rol|upper }}
                                     </span>
+                                </td>
+                                <td class="text-center">
+                                    {% if u.id != current_user.id %}
+                                    <a href="/eliminar_usuario/{{ u.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar usuario y todos sus datos?')">
+                                        <i class="fas fa-user-times"></i>
+                                    </a>
+                                    {% else %}
+                                    <small class="text-muted italic">Tú (Admin)</small>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -83,7 +91,7 @@
 
         <div class="col-md-7">
             <div class="card border-0 shadow-sm rounded p-3 mb-4">
-                <h5 class="fw-bold mb-3"><i class="fas fa-bolt me-2 text-warning"></i>Últimos Movimientos en el Sistema</h5>
+                <h5 class="fw-bold mb-3"><i class="fas fa-bolt me-2 text-warning"></i>Últimos Movimientos</h5>
                 <ul class="list-group list-group-flush">
                     {% for r in reciente %}
                     <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
@@ -93,8 +101,6 @@
                         </div>
                         <span class="text-danger fw-bold">-${{ r.monto }}</span>
                     </li>
-                    {% else %}
-                    <li class="list-group-item text-center text-muted">Sin actividad reciente.</li>
                     {% endfor %}
                 </ul>
             </div>
