@@ -1,26 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Registro de Usuario{% endblock %}
+{% block title %}Crear Cuenta{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-4">
-            <div class="card p-4 border-success">
-                <h3 class="text-center mb-4 text-success">Nueva Cuenta</h3>
+            <div class="card">
+                <h3 class="text-center mb-4 fw-bold">Nueva Cuenta</h3>
                 <form method="POST">
                     <div class="mb-3">
-                        <label class="form-label">Elige un Usuario</label>
-                        <input type="text" name="username" class="form-control" required>
+                        <label class="form-label">Nombre de Usuario</label>
+                        <input type="text" name="username" class="form-control" placeholder="Crea un usuario" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Crea una Contraseña</label>
-                        <input type="password" name="password" class="form-control" required>
+                        <label class="form-label">Contraseña</label>
+                        <input type="password" name="password" class="form-control" placeholder="Crea una contraseña" required>
                     </div>
-                    <button type="submit" class="btn btn-success w-100">Crear Cuenta</button>
+                    <button type="submit" class="btn btn-success btn-modern w-100">Registrarme</button>
                 </form>
-                <p class="mt-3 text-center small">
-                    ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
-                </p>
+                <div class="mt-4 text-center">
+                    <small class="text-muted">¿Ya tienes cuenta? <a href="/login" class="text-decoration-none">Inicia sesión</a></small>
+                </div>
             </div>
         </div>
     </div>

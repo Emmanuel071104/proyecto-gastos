@@ -1,10 +1,10 @@
-/* --- Paleta de Colores Moderna --- */
+/* --- Paleta de Colores Moderna (Merged) --- */
 :root {
     --primary-bg: #fbfbfd;
     --card-bg: #ffffff;
     --text-main: #1d1d1f;
     --text-muted: #86868b;
-    --apple-blue: #0071e3;    /* Azul oficial de Apple */
+    --apple-blue: #0071e3;    
     --apple-gray: #f5f5f7;
     --shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
 }
@@ -15,7 +15,7 @@ body {
     color: var(--text-main) !important;
 }
 
-/* --- NAVBAR: EL FIX DEL BOTÓN INVISIBLE --- */
+/* --- NAVBAR: FIX DE VISIBILIDAD --- */
 .navbar { 
     background-color: rgba(255, 255, 255, 0.8) !important;
     backdrop-filter: blur(20px);
@@ -23,61 +23,38 @@ body {
     padding: 12px 0;
 }
 
-.navbar-brand {
-    font-weight: 600;
+.navbar-brand { font-weight: 600; color: var(--apple-blue) !important; }
+
+/* Nuevo: Clase para el saludo Bienvenido */
+.navbar-welcome {
     color: var(--text-main) !important;
-}
-
-/* Forzamos que el botón de Login (btn-outline-light) sea visible */
-.navbar .btn-outline-light {
-    color: var(--text-main) !important;
-    border-color: rgba(0,0,0,0.15) !important;
-    background: transparent;
     font-weight: 500;
+    margin-right: 15px;
 }
 
-.navbar .btn-outline-light:hover {
-    background-color: var(--apple-gray) !important;
-    border-color: rgba(0,0,0,0.3) !important;
-    color: #000 !important;
-}
-
-/* Botón de Registro (btn-primary) */
-.navbar .btn-primary {
-    background-color: var(--apple-blue) !important;
-    border: none !important;
-    font-weight: 500;
-}
-
-/* --- HERO SECTION --- */
-.hero-section { 
-    background: transparent !important;
-    color: var(--text-main) !important; 
-    padding: 120px 0; 
-}
-
-.hero-section h1 {
-    font-size: 3.8rem;
-    font-weight: 700;
-    letter-spacing: -1.5px;
-}
-
-.hero-section p {
-    font-size: 1.5rem;
-    color: var(--text-muted);
-}
-
-/* --- CARDS Y TABLAS --- */
+/* --- CARDS Y KPIs (Dashboard Admin) --- */
 .card, .table-container { 
     background: var(--card-bg) !important;
     border-radius: 18px !important; 
     box-shadow: var(--shadow) !important; 
     padding: 32px;
+    border: none !important;
 }
 
+/* Fix Gasto Global: Tarjeta Azul con Texto Blanco */
+.kpi-card-blue {
+    background-color: var(--apple-blue) !important;
+    color: #ffffff !important;
+}
+
+.kpi-value-white { color: #ffffff !important; font-weight: bold; }
+.kpi-label-white { color: rgba(255, 255, 255, 0.8) !important; }
+
+/* --- BOTONES Y TABLAS --- */
 .btn {
-    border-radius: 22px !important; /* Bordes redondeados modernos */
+    border-radius: 22px !important;
     padding: 8px 24px !important;
+    font-weight: 500;
     transition: all 0.2s ease;
 }
 
@@ -88,3 +65,8 @@ body {
     font-size: 0.75rem;
     border-bottom: 1px solid #eee;
 }
+
+/* --- HERO SECTION --- */
+.hero-section { background: transparent !important; padding: 120px 0; }
+.hero-title { font-size: 3.8rem; font-weight: 700; letter-spacing: -1.5px; color: var(--apple-blue); }
+.hero-subtitle { font-size: 1.5rem; color: var(--text-muted); }

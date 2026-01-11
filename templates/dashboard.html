@@ -1,134 +1,69 @@
 {% extends "base.html" %}
-{% block title %}Panel de Control Admin{% endblock %}
-
 {% block content %}
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-dark">Panel Administrativo</h2>
-        <span class="badge bg-warning text-dark p-2">Modo Monitor Global</span>
-    </div>
-
     <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card bg-primary text-white border-0 shadow-sm p-3">
+            <div class="card kpi-card-blue p-3 shadow-sm">
                 <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-white p-3 me-3 text-primary">
-                        <i class="fas fa-dollar-sign fa-lg"></i>
-                    </div>
+                    <div class="rounded-circle bg-white p-3 me-3 text-primary"><i class="fas fa-dollar-sign"></i></div>
                     <div>
-                        <h6 class="mb-0 opacity-75">Gasto Total Global</h6>
-                        <h3 class="fw-bold mb-0 text-white">${{ "{:,.2f}".format(total) }}</h3>
+                        <h6 class="mb-0 kpi-label-white">Gasto Total Global</h6>
+                        <h3 class="kpi-value-white mb-0">${{ "{:,.2f}".format(total) }}</h3>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-white border-0 shadow-sm p-3">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-success p-3 me-3 text-white">
-                        <i class="fas fa-users fa-lg"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-muted">Usuarios Registrados</h6>
-                        <h3 class="fw-bold mb-0 text-dark">{{ num_usuarios }}</h3>
-                    </div>
-                </div>
+            <div class="card kpi-card-white p-3">
+                <h6 class="text-muted">Usuarios Registrados</h6>
+                <h3 class="fw-bold">{{ num_usuarios }}</h3>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-white border-0 shadow-sm p-3">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-info p-3 me-3 text-white">
-                        <i class="fas fa-chart-line fa-lg"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-muted">Promedio por Usuario</h6>
-                        <h3 class="fw-bold mb-0 text-dark">${{ "{:,.2f}".format(promedio) }}</h3>
-                    </div>
-                </div>
+            <div class="card kpi-card-white p-3">
+                <h6 class="text-muted">Promedio Usuario</h6>
+                <h3 class="fw-bold">${{ "{:,.2f}".format(promedio) }}</h3>
             </div>
         </div>
     </div>
 
     <div class="row">
         <div class="col-md-5">
-            <div class="card border-0 shadow-sm rounded p-3 mb-4">
-                <h5 class="fw-bold mb-3"><i class="fas fa-user-gear me-2 text-primary"></i>Gestión de Usuarios</h5>
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Usuario</th>
-                                <th>Rol</th>
-                                <th class="text-center">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for u in usuarios %}
-                            <tr>
-                                <td class="fw-bold">{{ u.username }}</td>
-                                <td>
-                                    <span class="badge {{ 'bg-danger' if u.rol == 'admin' else 'bg-secondary' }}">
-                                        {{ u.rol|upper }}
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    {% if u.id != current_user.id %}
-                                    <a href="/eliminar_usuario/{{ u.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar usuario y todos sus datos?')">
-                                        <i class="fas fa-user-times"></i>
-                                    </a>
-                                    {% else %}
-                                    <small class="text-muted italic">Tú (Admin)</small>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            <div class="table-container mb-4">
+                <h5 class="fw-bold mb-3">Gestión de Usuarios</h5>
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>Usuario</th><th>Rol</th><th class="text-center">Acciones</th></tr></thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr>
+                            <td class="fw-bold">{{ u.username }}</td>
+                            <td>{{ u.rol|upper }}</td>
+                            <td class="text-center">
+                                {% if u.id != current_user.id %}
+                                <a href="/eliminar_usuario/{{ u.id }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Eliminar?')">
+                                    <i class="fas fa-user-times"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-
         <div class="col-md-7">
-            <div class="card border-0 shadow-sm rounded p-3 mb-4">
-                <h5 class="fw-bold mb-3"><i class="fas fa-bolt me-2 text-warning"></i>Últimos Movimientos</h5>
+            <div class="card">
+                <h5 class="fw-bold mb-3">Últimos Movimientos</h5>
                 <ul class="list-group list-group-flush">
                     {% for r in reciente %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
-                        <div>
-                            <span class="badge bg-light text-dark border me-2">{{ r.dueno.username }}</span>
-                            <span class="text-dark">{{ r.descripcion }}</span>
-                        </div>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span><strong>{{ r.dueno.username }}</strong>: {{ r.descripcion }}</span>
                         <span class="text-danger fw-bold">-${{ r.monto }}</span>
                     </li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
-    </div>
-
-    <div class="table-container shadow-sm bg-white p-4 rounded mt-2">
-        <h4 class="fw-bold mb-4">Monitor de Auditoría (Todos los Gastos)</h4>
-        <table class="table table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>Usuario</th>
-                    <th>Descripción</th>
-                    <th>Categoría</th>
-                    <th class="text-end">Monto</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for g in gastos %}
-                <tr>
-                    <td><span class="badge bg-info text-dark">{{ g.dueno.username }}</span></td>
-                    <td>{{ g.descripcion }}</td>
-                    <td><span class="badge bg-light text-dark border">{{ g.categoria_rel.nombre }}</span></td>
-                    <td class="fw-bold text-danger text-end">${{ g.monto }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
 </div>
 {% endblock %}
