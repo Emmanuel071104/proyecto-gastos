@@ -7,7 +7,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN DE SEGURIDAD Y BASE DE DATOS ---
-app.config['SECRET_KEY'] = 'ipn_computacion_2026_secreto'
+# Actualizamos la clave secreta para SimpleFinance
+app.config['SECRET_KEY'] = 'simplefinance_2026_secreto'
 
 uri = os.getenv("DATABASE_URL", "sqlite:///gastos.db")
 if uri.startswith("postgres://"):
@@ -34,7 +35,6 @@ class Categoria(db.Model):
     __tablename__ = 'categorias'
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), unique=True, nullable=False)
-    # Relación: Una categoría tiene muchos gastos
     gastos = db.relationship('Gasto', backref='categoria_rel', lazy=True)
 
 class Gasto(db.Model):
@@ -44,7 +44,6 @@ class Gasto(db.Model):
     descripcion = db.Column(db.String(200), nullable=False)
     fecha = db.Column(db.DateTime, server_default=db.func.now())
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    # Nueva llave foránea para Categoría
     categoria_id = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
 
 @login_manager.user_loader
@@ -60,7 +59,6 @@ def index():
             return redirect(url_for('dashboard'))
         
         mis_gastos = Gasto.query.filter_by(usuario_id=current_user.id).order_by(Gasto.id.desc()).all()
-        # Pasamos las categorías para que aparezcan en el formulario
         todas_categorias = Categoria.query.all()
         return render_template('index.html', gastos=mis_gastos, categorias=todas_categorias)
     return render_template('index.html')
@@ -69,7 +67,7 @@ def index():
 @login_required
 def dashboard():
     if current_user.rol != 'admin':
-        flash('No tienes permiso para acceder a esta sección.')
+        flash('No tienes permiso para acceder a esta sección de SimpleFinance.', 'error')
         return redirect(url_for('index'))
     
     todos_los_gastos = Gasto.query.all()
@@ -83,13 +81,15 @@ def register():
         password = request.form.get('password')
         
         if Usuario.query.filter_by(username=username).first():
-            flash('El usuario ya existe.')
+            flash('Error: Ese usuario ya existe en SimpleFinance.', 'error')
             return redirect(url_for('register'))
             
         hashed_pw = generate_password_hash(password)
         nuevo_usuario = Usuario(username=username, password=hashed_pw, rol='usuario')
         db.session.add(nuevo_usuario)
         db.session.commit()
+        
+        flash('¡Cuenta creada con éxito! Bienvenido a SimpleFinance.', 'success')
         return redirect(url_for('login'))
         
     return render_template('register.html')
@@ -98,10 +98,16 @@ def register():
 def login():
     if request.method == 'POST':
         user = Usuario.query.filter_by(username=request.form.get('username')).first()
-        if user and check_password_hash(user.password, request.form.get('password')):
+        
+        if not user:
+            flash('El usuario ingresado no existe en SimpleFinance.', 'error')
+        elif not check_password_hash(user.password, request.form.get('password')):
+            flash('Contraseña incorrecta. Inténtalo de nuevo.', 'error')
+        else:
             login_user(user)
+            flash(f'¡Bienvenido a SimpleFinance, {user.username}!', 'success')
             return redirect(url_for('index'))
-        flash('Credenciales incorrectas.')
+            
     return render_template('login.html')
 
 @app.route('/agregar', methods=['POST'])
@@ -109,7 +115,7 @@ def login():
 def agregar():
     monto = request.form.get('monto')
     descripcion = request.form.get('descripcion')
-    cat_id = request.form.get('categoria_id') # Recibimos la categoría
+    cat_id = request.form.get('categoria_id')
     
     if monto and descripcion and cat_id:
         nuevo_gasto = Gasto(
@@ -120,34 +126,35 @@ def agregar():
         )
         db.session.add(nuevo_gasto)
         db.session.commit()
+        flash('Movimiento registrado en SimpleFinance.', 'success')
         
     return redirect(url_for('index'))
 
 @app.route('/logout')
 def logout():
     logout_user()
+    flash('Has cerrado sesión en SimpleFinance.', 'success')
     return redirect(url_for('login'))
 
 @app.route('/setup')
 def setup():
     db.create_all()
     
-    # 1. Crear categorías base si no existen
     if not Categoria.query.first():
-        cat1 = Categoria(nombre='Comida')
-        cat2 = Categoria(nombre='Transporte')
-        cat3 = Categoria(nombre='Ocio')
-        cat4 = Categoria(nombre='Salud')
-        db.session.add_all([cat1, cat2, cat3, cat4])
+        db.session.add_all([
+            Categoria(nombre='Comida'), 
+            Categoria(nombre='Transporte'), 
+            Categoria(nombre='Ocio'), 
+            Categoria(nombre='Salud')
+        ])
     
-    # 2. Crear admin si no existe
     if not Usuario.query.filter_by(username='admin').first():
         admin_pass = generate_password_hash('admin123')
         admin_user = Usuario(username='admin', password=admin_pass, rol='admin')
         db.session.add(admin_user)
         
     db.session.commit()
-    return "Base de datos inicializada (3 tablas) y Admin creado."
+    return "SimpleFinance: Base de datos inicializada correctamente."
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
