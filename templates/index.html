@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if not current_user.is_authenticated %}
+    <div class="hero-section rounded">
+        <h1>Bienvenido a tu Gestor de Gastos</h1>
+        <p>Organiza tu dinero de forma sencilla y rápida.</p>
+        <a href="/register" class="btn btn-light">Empezar Ahora</a>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h4>Registrar Gasto</h4>
+                <form action="/agregar" method="POST">
+                    <input type="number" name="monto" class="form-control mb-2" placeholder="Monto ($)" required>
+                    <input type="text" name="descripcion" class="form-control mb-2" placeholder="Descripción" required>
+                    <button type="submit" class="btn btn-success w-100">Guardar Gasto</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="table-container shadow-sm">
+                <h4>Mis Movimientos</h4>
+                <table class="table">
+                    <thead><tr><th>Descripción</th><th>Monto</th></tr></thead>
+                    <tbody>
+                        {% for g in gastos %}
+                        <tr><td>{{ g.descripcion }}</td><td class="text-danger">-${{ g.monto }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

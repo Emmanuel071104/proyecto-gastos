@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Panel de Control Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning border-warning">
+                <strong>Modo Administrador:</strong> Tienes acceso a todos los registros de la base de datos.
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark text-white p-3 text-center">
+                <h5>Gasto Global en el Sistema</h5>
+                <h2 class="text-warning">${{ total }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container shadow-sm bg-white">
+        <h4 class="mb-4">Monitor General de Gastos</h4>
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario Propietario</th>
+                    <th>Descripción del Gasto</th>
+                    <th>Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for g in gastos %}
+                <tr>
+                    <td>#{{ g.id }}</td>
+                    <td><span class="badge bg-info text-dark">{{ g.dueno.username }}</span></td>
+                    <td>{{ g.descripcion }}</td>
+                    <td class="fw-bold text-danger">${{ g.monto }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

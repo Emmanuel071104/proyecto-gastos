@@ -1,0 +1,7 @@
+/* Estilos generales */
+body { font-family: 'Segoe UI', sans-serif; }
+.navbar { margin-bottom: 2rem; }
+.hero-section { background: #007bff; color: white; padding: 60px 0; text-align: center; }
+.card { border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.btn-primary { border-radius: 20px; }
+.table-container { background: white; padding: 20px; border-radius: 10px; }
