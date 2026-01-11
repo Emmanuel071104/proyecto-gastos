@@ -12,23 +12,42 @@
     {% else %}
     <div class="row">
         <div class="col-md-4">
-            <div class="card p-3">
-                <h4>Registrar Gasto</h4>
+            <div class="card p-3 shadow-sm border-0">
+                <h4 class="mb-3">Registrar Gasto</h4>
                 <form action="/agregar" method="POST">
-                    <input type="number" name="monto" class="form-control mb-2" placeholder="Monto ($)" required>
-                    <input type="text" name="descripcion" class="form-control mb-2" placeholder="Descripción" required>
+                    <input type="number" step="0.01" name="monto" class="form-control mb-2" placeholder="Monto ($)" required>
+                    
+                    <select name="categoria_id" class="form-control mb-2" required>
+                        <option value="" disabled selected>Selecciona una categoría</option>
+                        {% for c in categorias %}
+                        <option value="{{ c.id }}">{{ c.nombre }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <input type="text" name="descripcion" class="form-control mb-2" placeholder="¿En qué gastaste?" required>
+                    
                     <button type="submit" class="btn btn-success w-100">Guardar Gasto</button>
                 </form>
             </div>
         </div>
+
         <div class="col-md-8">
-            <div class="table-container shadow-sm">
-                <h4>Mis Movimientos</h4>
-                <table class="table">
-                    <thead><tr><th>Descripción</th><th>Monto</th></tr></thead>
+            <div class="table-container shadow-sm bg-white p-3 rounded">
+                <h4 class="mb-3">Mis Movimientos</h4>
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Categoría</th> <th>Monto</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         {% for g in gastos %}
-                        <tr><td>{{ g.descripcion }}</td><td class="text-danger">-${{ g.monto }}</td></tr>
+                        <tr>
+                            <td>{{ g.descripcion }}</td>
+                            <td><span class="badge bg-secondary">{{ g.categoria_rel.nombre }}</span></td>
+                            <td class="text-danger fw-bold">-${{ g.monto }}</td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>

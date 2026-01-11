@@ -6,34 +6,33 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="alert alert-warning border-warning">
-                <strong>Modo Administrador:</strong> Tienes acceso a todos los registros de la base de datos.
+                <strong>Modo Administrador:</strong> Monitor global de la base de datos.
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-dark text-white p-3 text-center">
-                <h5>Gasto Global en el Sistema</h5>
+            <div class="card bg-dark text-white p-3 text-center border-0 shadow-sm">
+                <h6>Gasto Total en el Sistema</h6>
                 <h2 class="text-warning">${{ total }}</h2>
             </div>
         </div>
     </div>
 
-    <div class="table-container shadow-sm bg-white">
+    <div class="table-container shadow-sm bg-white p-3 rounded">
         <h4 class="mb-4">Monitor General de Gastos</h4>
         <table class="table table-hover">
             <thead class="table-dark">
                 <tr>
-                    <th>ID</th>
-                    <th>Usuario Propietario</th>
-                    <th>Descripción del Gasto</th>
-                    <th>Monto</th>
+                    <th>Usuario</th>
+                    <th>Descripción</th>
+                    <th>Categoría</th> <th>Monto</th>
                 </tr>
             </thead>
             <tbody>
                 {% for g in gastos %}
                 <tr>
-                    <td>#{{ g.id }}</td>
                     <td><span class="badge bg-info text-dark">{{ g.dueno.username }}</span></td>
                     <td>{{ g.descripcion }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ g.categoria_rel.nombre }}</span></td>
                     <td class="fw-bold text-danger">${{ g.monto }}</td>
                 </tr>
                 {% endfor %}
