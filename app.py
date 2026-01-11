@@ -19,7 +19,6 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # --- MODELOS (5 TABLAS) ---
-
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -61,33 +60,44 @@ class Gasto(db.Model):
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
 
-# --- RUTAS ---
+# --- RUTAS DE LA GRÁFICA Y MANTENIMIENTO ---
+
+@app.route('/chart-data')
+@login_required
+def chart_data():
+    # Consulta para agrupar gastos por categoría
+    results = db.session.query(Categoria.nombre, db.func.sum(Gasto.monto)).join(Gasto).filter(Gasto.usuario_id == current_user.id).group_by(Categoria.nombre).all()
+    return jsonify({'labels': [r[0] for r in results], 'values': [r[1] for r in results]})
+
+@app.route('/reset-db')
+def reset_db():
+    db.drop_all()
+    db.create_all()
+    return "Base de datos borrada y recreada. Ve a /setup"
+
+# --- RUTAS DE USUARIO ---
 
 @app.route('/')
 def index():
     if current_user.is_authenticated:
-        if current_user.rol == 'admin':
-            return redirect(url_for('dashboard'))
+        if current_user.rol == 'admin': return redirect(url_for('dashboard'))
         
-        # Filtros restaurados
+        # Filtros
         cat_id = request.args.get('categoria_id')
-        inicio = request.args.get('inicio')
-        fin = request.args.get('fin')
+        inicio, fin = request.args.get('inicio'), request.args.get('fin')
         query = Gasto.query.filter_by(usuario_id=current_user.id)
         if cat_id: query = query.filter_by(categoria_id=int(cat_id))
         if inicio and fin: query = query.filter(Gasto.fecha.between(inicio, fin))
         
         mis_gastos = query.order_by(Gasto.id.desc()).all()
-        total_gastado = sum(g.monto for g in mis_gastos)
         
-        presupuesto_user = Presupuesto.query.filter_by(usuario_id=current_user.id).first()
-        limite = presupuesto_user.monto_limite if presupuesto_user else 0
-        saldo = limite - total_gastado
+        # Lógica de presupuesto
+        p_user = Presupuesto.query.filter_by(usuario_id=current_user.id).first()
+        limite = p_user.monto_limite if p_user else 0
+        saldo = limite - sum(g.monto for g in mis_gastos)
         
-        return render_template('index.html', gastos=mis_gastos, 
-                               categorias=Categoria.query.all(), 
-                               metodos=MetodoPago.query.all(),
-                               limite=limite, saldo=saldo)
+        return render_template('index.html', gastos=mis_gastos, categorias=Categoria.query.all(), 
+                               metodos=MetodoPago.query.all(), limite=limite, saldo=saldo)
     return render_template('index.html')
 
 @app.route('/definir_presupuesto', methods=['POST'])
@@ -99,55 +109,46 @@ def definir_presupuesto():
         if p: p.monto_limite = float(monto)
         else: db.session.add(Presupuesto(monto_limite=float(monto), usuario_id=current_user.id))
         db.session.commit()
-        flash('Presupuesto actualizado.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/agregar', methods=['POST'])
 @login_required
 def agregar():
-    monto, desc, cat, met = request.form.get('monto'), request.form.get('descripcion'), request.form.get('categoria_id'), request.form.get('metodo_id')
-    if monto and desc and cat and met:
-        db.session.add(Gasto(monto=float(monto), descripcion=desc, usuario_id=current_user.id, 
-                             categoria_id=int(cat), metodo_id=int(met)))
+    m, d, c, met = request.form.get('monto'), request.form.get('descripcion'), request.form.get('categoria_id'), request.form.get('metodo_id')
+    if m and d and c and met:
+        db.session.add(Gasto(monto=float(m), descripcion=d, usuario_id=current_user.id, categoria_id=int(c), metodo_id=int(met)))
         db.session.commit()
-        flash('Gasto registrado.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/editar/<int:id>', methods=['POST'])
 @login_required
 def editar(id):
-    gasto = Gasto.query.get_or_404(id)
-    if gasto.usuario_id == current_user.id:
-        gasto.monto = float(request.form.get('monto'))
-        gasto.descripcion = request.form.get('descripcion')
-        gasto.categoria_id = int(request.form.get('categoria_id'))
-        gasto.metodo_id = int(request.form.get('metodo_id'))
+    g = Gasto.query.get_or_404(id)
+    if g.usuario_id == current_user.id:
+        g.monto, g.descripcion = float(request.form.get('monto')), request.form.get('descripcion')
+        g.categoria_id, g.metodo_id = int(request.form.get('categoria_id')), int(request.form.get('metodo_id'))
         db.session.commit()
-        flash('Gasto actualizado.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/eliminar/<int:id>')
 @login_required
 def eliminar(id):
-    gasto = Gasto.query.get_or_404(id)
-    if gasto.usuario_id == current_user.id:
-        db.session.delete(gasto)
+    g = Gasto.query.get_or_404(id)
+    if g.usuario_id == current_user.id:
+        db.session.delete(g)
         db.session.commit()
-        flash('Eliminado correctamente.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
     if current_user.rol != 'admin': return redirect(url_for('index'))
-    gastos = Gasto.query.all()
+    gastos, usuarios = Gasto.query.all(), Usuario.query.all()
     total = sum(g.monto for g in gastos)
-    usuarios = Usuario.query.all()
-    num_usuarios = len(usuarios)
-    promedio = total / num_usuarios if num_usuarios > 0 else 0
-    reciente = Gasto.query.order_by(Gasto.id.desc()).limit(5).all()
+    promedio = total / len(usuarios) if usuarios else 0
     return render_template('dashboard.html', gastos=gastos, total=total, usuarios=usuarios, 
-                           num_usuarios=num_usuarios, promedio=round(promedio, 2), reciente=reciente)
+                           num_usuarios=len(usuarios), promedio=round(promedio, 2), 
+                           reciente=Gasto.query.order_by(Gasto.id.desc()).limit(5).all())
 
 @app.route('/eliminar_usuario/<int:id>')
 @login_required
@@ -157,9 +158,6 @@ def eliminar_usuario(id):
     if u.id != current_user.id:
         db.session.delete(u)
         db.session.commit()
-        flash(f'Usuario {u.username} eliminado.', 'success')
-    else:
-        flash('No puedes eliminar tu propia cuenta.', 'error')
     return redirect(url_for('dashboard'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -169,18 +167,16 @@ def login():
         if user and check_password_hash(user.password, request.form.get('password')):
             login_user(user)
             return redirect(url_for('index'))
-        flash('Credenciales incorrectas.', 'error')
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form.get('username')
-        if not Usuario.query.filter_by(username=username).first():
-            db.session.add(Usuario(username=username, password=generate_password_hash(request.form.get('password'))))
+        user = request.form.get('username')
+        if not Usuario.query.filter_by(username=user).first():
+            db.session.add(Usuario(username=user, password=generate_password_hash(request.form.get('password'))))
             db.session.commit()
             return redirect(url_for('login'))
-        flash('El usuario ya existe.', 'error')
     return render_template('register.html')
 
 @app.route('/logout')
@@ -198,7 +194,7 @@ def setup():
     if not Usuario.query.filter_by(username='admin').first():
         db.session.add(Usuario(username='admin', password=generate_password_hash('admin123'), rol='admin'))
     db.session.commit()
-    return "Base de datos con 5 tablas configurada."
+    return "Base configurada."
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
