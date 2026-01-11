@@ -16,36 +16,52 @@
                 <h4 class="mb-3 fw-bold">Nuevo Gasto</h4>
                 <form action="/agregar" method="POST">
                     <input type="number" step="0.01" name="monto" class="form-control mb-2" placeholder="Monto ($)" required>
-                    
                     <select name="categoria_id" class="form-control mb-2" required>
-                        <option value="" disabled selected>Selecciona una categoría</option>
+                        <option value="" disabled selected>Categoría</option>
                         {% for c in categorias %}
                         <option value="{{ c.id }}">{{ c.nombre }}</option>
                         {% endfor %}
                     </select>
-
                     <input type="text" name="descripcion" class="form-control mb-2" placeholder="¿En qué gastaste?" required>
-                    
-                    <button type="submit" class="btn btn-success w-100">Guardar Gasto</button>
+                    <button type="submit" class="btn btn-success w-100">Guardar</button>
                 </form>
+            </div>
+
+            <div class="card p-3 shadow-sm border-0">
+                <h5 class="fw-bold mb-3">Distribución</h5>
+                <canvas id="expenseChart" style="max-height: 250px;"></canvas>
             </div>
         </div>
 
         <div class="col-md-8">
+            <div class="bg-white p-3 shadow-sm rounded mb-4">
+                <form method="GET" class="row g-2">
+                    <div class="col-md-4">
+                        <select name="categoria_id" class="form-select form-select-sm">
+                            <option value="">Todas las categorías</option>
+                            {% for c in categorias %}
+                            <option value="{{ c.id }}">{{ c.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3"><input type="date" name="inicio" class="form-control form-control-sm"></div>
+                    <div class="col-md-3"><input type="date" name="fin" class="form-control form-control-sm"></div>
+                    <div class="col-md-2"><button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button></div>
+                </form>
+            </div>
+
             <div class="table-container shadow-sm bg-white p-3 rounded">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="m-0">Mis Movimientos</h4>
-                    <div class="text-end">
-                        <small class="text-muted">Total:</small>
-                        <h4 class="text-danger m-0">-${{ gastos|sum(attribute='monto')|round(2) }}</h4>
-                    </div>
+                    <h4 class="text-danger m-0">-${{ gastos|sum(attribute='monto')|round(2) }}</h4>
                 </div>
-                <table class="table table-hover">
+                <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>Descripción</th>
                             <th>Categoría</th> 
                             <th class="text-end">Monto</th>
+                            <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -54,10 +70,11 @@
                             <td>{{ g.descripcion }}</td>
                             <td><span class="badge bg-secondary">{{ g.categoria_rel.nombre }}</span></td>
                             <td class="text-danger fw-bold text-end">-${{ g.monto }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="3" class="text-center text-muted py-4">No hay gastos registrados en SimpleFinance.</td>
+                            <td class="text-center">
+                                <a href="/eliminar/{{ g.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar?')">
+                                    <i class="fas fa-trash-can"></i>
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -67,4 +84,22 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+    fetch('/chart-data')
+        .then(res => res.json())
+        .then(data => {
+            new Chart(document.getElementById('expenseChart'), {
+                type: 'pie',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.values,
+                        backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6c757d']
+                    }]
+                },
+                options: { plugins: { legend: { position: 'bottom' } } }
+            });
+        });
+</script>
 {% endblock %}

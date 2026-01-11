@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -7,7 +7,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN DE SEGURIDAD Y BASE DE DATOS ---
-# Actualizamos la clave secreta para SimpleFinance
 app.config['SECRET_KEY'] = 'simplefinance_2026_secreto'
 
 uri = os.getenv("DATABASE_URL", "sqlite:///gastos.db")
@@ -58,57 +57,57 @@ def index():
         if current_user.rol == 'admin':
             return redirect(url_for('dashboard'))
         
-        mis_gastos = Gasto.query.filter_by(usuario_id=current_user.id).order_by(Gasto.id.desc()).all()
+        # Filtros opcionales
+        cat_id = request.args.get('categoria_id')
+        inicio = request.args.get('inicio')
+        fin = request.args.get('fin')
+
+        query = Gasto.query.filter_by(usuario_id=current_user.id)
+
+        if cat_id:
+            query = query.filter_by(categoria_id=int(cat_id))
+        if inicio and fin:
+            query = query.filter(Gasto.fecha.between(inicio, fin))
+
+        mis_gastos = query.order_by(Gasto.id.desc()).all()
         todas_categorias = Categoria.query.all()
         return render_template('index.html', gastos=mis_gastos, categorias=todas_categorias)
     return render_template('index.html')
 
-@app.route('/dashboard')
+@app.route('/chart-data')
 @login_required
-def dashboard():
-    if current_user.rol != 'admin':
-        flash('No tienes permiso para acceder a esta sección de SimpleFinance.', 'error')
-        return redirect(url_for('index'))
+def chart_data():
+    # Consulta SQL agrupada para el gráfico de pastel
+    results = db.session.query(
+        Categoria.nombre, db.func.sum(Gasto.monto)
+    ).join(Gasto).filter(Gasto.usuario_id == current_user.id).group_by(Categoria.nombre).all()
     
-    todos_los_gastos = Gasto.query.all()
-    total_global = sum(g.monto for g in todos_los_gastos)
-    return render_template('dashboard.html', gastos=todos_los_gastos, total=total_global)
+    return jsonify({
+        'labels': [r[0] for r in results],
+        'values': [r[1] for r in results]
+    })
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        if Usuario.query.filter_by(username=username).first():
-            flash('Error: Ese usuario ya existe en SimpleFinance.', 'error')
-            return redirect(url_for('register'))
-            
-        hashed_pw = generate_password_hash(password)
-        nuevo_usuario = Usuario(username=username, password=hashed_pw, rol='usuario')
-        db.session.add(nuevo_usuario)
+@app.route('/eliminar/<int:id>')
+@login_required
+def eliminar(id):
+    gasto = Gasto.query.get_or_404(id)
+    if gasto.usuario_id == current_user.id:
+        db.session.delete(gasto)
         db.session.commit()
-        
-        flash('¡Cuenta creada con éxito! Bienvenido a SimpleFinance.', 'success')
-        return redirect(url_for('login'))
-        
-    return render_template('register.html')
+        flash('Registro eliminado.', 'success')
+    return redirect(url_for('index'))
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        user = Usuario.query.filter_by(username=request.form.get('username')).first()
-        
-        if not user:
-            flash('El usuario ingresado no existe en SimpleFinance.', 'error')
-        elif not check_password_hash(user.password, request.form.get('password')):
-            flash('Contraseña incorrecta. Inténtalo de nuevo.', 'error')
-        else:
-            login_user(user)
-            flash(f'¡Bienvenido a SimpleFinance, {user.username}!', 'success')
-            return redirect(url_for('index'))
-            
-    return render_template('login.html')
+@app.route('/editar/<int:id>', methods=['POST'])
+@login_required
+def editar(id):
+    gasto = Gasto.query.get_or_404(id)
+    if gasto.usuario_id == current_user.id:
+        gasto.monto = float(request.form.get('monto'))
+        gasto.descripcion = request.form.get('descripcion')
+        gasto.categoria_id = int(request.form.get('categoria_id'))
+        db.session.commit()
+        flash('Gasto actualizado.', 'success')
+    return redirect(url_for('index'))
 
 @app.route('/agregar', methods=['POST'])
 @login_required
@@ -126,35 +125,56 @@ def agregar():
         )
         db.session.add(nuevo_gasto)
         db.session.commit()
-        flash('Movimiento registrado en SimpleFinance.', 'success')
-        
+        flash('Movimiento registrado.', 'success')
     return redirect(url_for('index'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    if current_user.rol != 'admin':
+        return redirect(url_for('index'))
+    todos = Gasto.query.all()
+    total = sum(g.monto for g in todos)
+    return render_template('dashboard.html', gastos=todos, total=total)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        user = Usuario.query.filter_by(username=request.form.get('username')).first()
+        if user and check_password_hash(user.password, request.form.get('password')):
+            login_user(user)
+            return redirect(url_for('index'))
+        flash('Credenciales inválidas.', 'error')
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        if Usuario.query.filter_by(username=username).first():
+            flash('El usuario ya existe.', 'error')
+        else:
+            pw = generate_password_hash(request.form.get('password'))
+            nuevo = Usuario(username=username, password=pw)
+            db.session.add(nuevo)
+            db.session.commit()
+            return redirect(url_for('login'))
+    return render_template('register.html')
 
 @app.route('/logout')
 def logout():
     logout_user()
-    flash('Has cerrado sesión en SimpleFinance.', 'success')
     return redirect(url_for('login'))
 
 @app.route('/setup')
 def setup():
     db.create_all()
-    
     if not Categoria.query.first():
-        db.session.add_all([
-            Categoria(nombre='Comida'), 
-            Categoria(nombre='Transporte'), 
-            Categoria(nombre='Ocio'), 
-            Categoria(nombre='Salud')
-        ])
-    
+        db.session.add_all([Categoria(nombre='Comida'), Categoria(nombre='Transporte'), Categoria(nombre='Ocio'), Categoria(nombre='Salud')])
     if not Usuario.query.filter_by(username='admin').first():
-        admin_pass = generate_password_hash('admin123')
-        admin_user = Usuario(username='admin', password=admin_pass, rol='admin')
-        db.session.add(admin_user)
-        
+        db.session.add(Usuario(username='admin', password=generate_password_hash('admin123'), rol='admin'))
     db.session.commit()
-    return "SimpleFinance: Base de datos inicializada correctamente."
+    return "Base de datos lista."
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
