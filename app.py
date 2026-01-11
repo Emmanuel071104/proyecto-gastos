@@ -9,6 +9,7 @@ app = Flask(__name__)
 # --- CONFIGURACIÓN DE SEGURIDAD Y BASE DE DATOS ---
 app.config['SECRET_KEY'] = 'simplefinance_2026_secreto'
 
+# Configuración para PostgreSQL en Render o SQLite local
 uri = os.getenv("DATABASE_URL", "sqlite:///gastos.db")
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
@@ -27,7 +28,7 @@ class Usuario(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    rol = db.Column(db.String(20), default='usuario')
+    rol = db.Column(db.String(20), default='usuario') # 'usuario' o 'admin'
     gastos = db.relationship('Gasto', backref='dueno', lazy=True)
 
 class Categoria(db.Model):
@@ -54,10 +55,11 @@ def load_user(user_id):
 @app.route('/')
 def index():
     if current_user.is_authenticated:
+        # Redirección automática si es administrador
         if current_user.rol == 'admin':
             return redirect(url_for('dashboard'))
         
-        # Filtros opcionales
+        # Lógica de filtros para usuarios regulares
         cat_id = request.args.get('categoria_id')
         inicio = request.args.get('inicio')
         fin = request.args.get('fin')
@@ -77,7 +79,7 @@ def index():
 @app.route('/chart-data')
 @login_required
 def chart_data():
-    # Consulta SQL agrupada para el gráfico de pastel
+    # Datos para el gráfico de pastel del usuario
     results = db.session.query(
         Categoria.nombre, db.func.sum(Gasto.monto)
     ).join(Gasto).filter(Gasto.usuario_id == current_user.id).group_by(Categoria.nombre).all()
@@ -91,10 +93,11 @@ def chart_data():
 @login_required
 def eliminar(id):
     gasto = Gasto.query.get_or_404(id)
+    # Verificación de propiedad para seguridad
     if gasto.usuario_id == current_user.id:
         db.session.delete(gasto)
         db.session.commit()
-        flash('Registro eliminado.', 'success')
+        flash('Registro eliminado correctamente.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/editar/<int:id>', methods=['POST'])
@@ -106,7 +109,7 @@ def editar(id):
         gasto.descripcion = request.form.get('descripcion')
         gasto.categoria_id = int(request.form.get('categoria_id'))
         db.session.commit()
-        flash('Gasto actualizado.', 'success')
+        flash('Gasto actualizado con éxito.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/agregar', methods=['POST'])
@@ -128,14 +131,34 @@ def agregar():
         flash('Movimiento registrado.', 'success')
     return redirect(url_for('index'))
 
+# --- RUTA DEL DASHBOARD ADMINISTRATIVO ACTUALIZADA ---
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     if current_user.rol != 'admin':
         return redirect(url_for('index'))
-    todos = Gasto.query.all()
-    total = sum(g.monto for g in todos)
-    return render_template('dashboard.html', gastos=todos, total=total)
+    
+    # Consultas para KPIs globales
+    todos_los_gastos = Gasto.query.all()
+    todos_los_usuarios = Usuario.query.all()
+    
+    total_global = sum(g.monto for g in todos_los_gastos)
+    num_usuarios = len(todos_los_usuarios)
+    promedio = total_global / num_usuarios if num_usuarios > 0 else 0
+    
+    # Últimos 5 movimientos del sistema
+    actividad_reciente = Gasto.query.order_by(Gasto.id.desc()).limit(5).all()
+    
+    return render_template('dashboard.html', 
+                           gastos=todos_los_gastos, 
+                           total=total_global, 
+                           usuarios=todos_los_usuarios,
+                           num_usuarios=num_usuarios,
+                           promedio=round(promedio, 2),
+                           reciente=actividad_reciente)
+
+# --- GESTIÓN DE SESIONES Y REGISTRO ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -144,7 +167,7 @@ def login():
         if user and check_password_hash(user.password, request.form.get('password')):
             login_user(user)
             return redirect(url_for('index'))
-        flash('Credenciales inválidas.', 'error')
+        flash('Credenciales incorrectas.', 'error')
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -152,12 +175,13 @@ def register():
     if request.method == 'POST':
         username = request.form.get('username')
         if Usuario.query.filter_by(username=username).first():
-            flash('El usuario ya existe.', 'error')
+            flash('Este nombre de usuario ya está en uso.', 'error')
         else:
-            pw = generate_password_hash(request.form.get('password'))
-            nuevo = Usuario(username=username, password=pw)
+            hashed_pw = generate_password_hash(request.form.get('password'))
+            nuevo = Usuario(username=username, password=hashed_pw)
             db.session.add(nuevo)
             db.session.commit()
+            flash('Cuenta creada. Ahora puedes iniciar sesión.', 'success')
             return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -170,11 +194,18 @@ def logout():
 def setup():
     db.create_all()
     if not Categoria.query.first():
-        db.session.add_all([Categoria(nombre='Comida'), Categoria(nombre='Transporte'), Categoria(nombre='Ocio'), Categoria(nombre='Salud')])
+        db.session.add_all([
+            Categoria(nombre='Comida'), 
+            Categoria(nombre='Transporte'), 
+            Categoria(nombre='Ocio'), 
+            Categoria(nombre='Salud')
+        ])
     if not Usuario.query.filter_by(username='admin').first():
-        db.session.add(Usuario(username='admin', password=generate_password_hash('admin123'), rol='admin'))
+        # Contraseña por defecto para el admin inicial
+        admin_pw = generate_password_hash('admin123')
+        db.session.add(Usuario(username='admin', password=admin_pw, rol='admin'))
     db.session.commit()
-    return "Base de datos lista."
+    return "Infraestructura de base de datos inicializada correctamente."
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
